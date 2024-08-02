@@ -4,7 +4,7 @@ Simple User Script which adds an overlay on mouse hover to various elements on h
 ## Installation
 To use this Script, you need [Tampermonkey](https://www.tampermonkey.net/). Other user script managers might workt as well, but I have not tested any other.
 
-Afte you have installed Tampermonkey, [click here](pikalytics.user.js) to add the script to your browser.
+Afte you have installed Tampermonkey, [click here](raw/main/pikalytics.user.js) to add the script to your browser.
 
 ## Images
 ### Move Overlay
