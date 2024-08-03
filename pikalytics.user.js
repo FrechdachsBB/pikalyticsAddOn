@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pikalytics Overlay
 // @namespace    https://github.com/FrechdachsBB/
-// @version      0.1
+// @version      0.2
 // @description  Adds helpful overlays to pikalytics.com
 // @author       FrechdachsBB
 // @match        https://pikalytics.com/**
@@ -45,7 +45,6 @@
         addStyle()
         act();
         monitorDomChanges();
-        console.log("Script loaded!");
     }, 1000)
 
     function act() {
@@ -105,17 +104,28 @@
             if (move == "Other") return;
             move = transformPokedexName(move);
             P.getMoveByName(move)
-                .then(function (response) {
-                    let dmgClass = response.damage_class.name;
-                    let acc = response.accuracy
-                    let pow = response.power
-                    addOverlay(target, createTable(
-                        [
-                            [("ACC: ") + (acc ? acc : "-"), ("POW: ") + (pow ? pow : "-"), dmgClass],
-                            [getEffectDescr(response)]
-                        ]
-                    ));
-                })
+                .then(
+                    function (response) {
+                        P.getMoveTargetByName(response.target.name).then(
+                            function (moveTarget) {
+                                let dmgClass = response.damage_class.name;
+                                let acc = response.accuracy
+                                let pow = response.power
+                                let prio = response.priority;
+                                let content = [
+                                    [("ACC: ") + (acc ? acc : "-"), ("POW: ") + (pow ? pow : "-"), "PRIO: " + prio, dmgClass],
+                                    [getEffectDescr(response, isGenEightOrAbove(response))]
+                                ]
+                                if (response.meta.max_hits > 1) {
+                                    let maxHits = response.meta.max_hits;
+                                    let minHits = response.meta.min_hits;
+                                    content.push(["Hits " + minHits + (maxHits != minHits ? (" to " + response.meta.max_hits) : "") + " times."])
+                                }
+                                content.push(["Target: " + getDescr(moveTarget)])
+
+                                addOverlay(target, createTable(content), 0, -150);
+                            })
+                    })
 
         })
     }
@@ -166,13 +176,13 @@
             tdDescrWeakTo.innerText = "Weaknesses (x2)"
 
 
-            for(let t of type.resists){
+            for (let t of type.resists) {
                 tdValResists.appendChild(createTypeElement(t))
             }
-            for(let t of type.immune){
+            for (let t of type.immune) {
                 tdValImmune.appendChild(createTypeElement(t))
             }
-            for(let t of type.weakness){
+            for (let t of type.weakness) {
                 tdValWeakTo.appendChild(createTypeElement(t))
             }
 
@@ -189,12 +199,12 @@
         })
     }
 
-    function createTypeElement(type, hasIgnoreClass=true){
+    function createTypeElement(type, hasIgnoreClass = true) {
         let span = document.createElement("span");
         span.classList.add("type", type)
-        if(hasIgnoreClass)span.classList.add("ignore")
+        if (hasIgnoreClass) span.classList.add("ignore")
         span.innerText = type;
-        return span;    
+        return span;
     }
 
     function addOverlay(target, content, offSetX = 0, offSetY = -100) {
@@ -219,13 +229,27 @@
 
     }
 
-    function getEffectDescr(element) {
-        let effect = element.effect_entries.find(e => e.language.name == lang);
+    function getEffectDescr(element, useFlavorText = false) {
+        
+        let effect = undefined;
+        if(!useFlavorText)
+            effect = element.effect_entries.find(e => e.language.name == lang);
+        
         if (!effect) {
             effect = element.flavor_text_entries.find(e => e.language.name == lang);
             effect = effect ? effect.flavor_text : "No description available"
         } else effect = effect.short_effect;
         return effect;
+    }
+
+    function getDescr(element) {
+        let descr = element.descriptions.find(e => e.language.name == lang)
+        if (!descr) return element.name;
+        return descr.description;
+    }
+
+    function isGenEightOrAbove(element){
+        return element.generation.name == "generation-viii" || element.generation.name == "generation-ix"
     }
 
     function createTable(data) {
@@ -245,10 +269,10 @@
                 }
                 row.appendChild(cell);
             });
-    
+
             table.appendChild(row);
         });
-    
+
         return table;
     }
 })();
